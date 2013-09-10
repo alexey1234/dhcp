@@ -1,0 +1,27 @@
+#!/usr/local/bin/php-cgi -f
+<?php
+/*
+uninstall.dhcp.php
+Script remove entries from /conf/config.xml
+*/
+include ("config.inc");
+if ( is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
+	for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) {
+		if (preg_match('/dhcp_light/', $config['rc']['postinit']['cmd'][$i])) {	unset($config['rc']['postinit']['cmd'][$i]);} else{}
+	 ++$i;
+	}
+ }
+if ( is_array($config['rc']['shutdown'] ) && is_array( $config['rc']['shutdown']['cmd'] ) ) {
+ 	for ($i = 0; $i < count($config['rc']['shutdown']['cmd']); ) {
+ 		if (preg_match('/dhcp_light/', $config['rc']['shutdown']['cmd'][$i])) {	unset($config['rc']['shutdown']['cmd'][$i]); } else {}
+	++$i;	
+ 	}
+}
+if (is_dir ("/usr/local/www/ext/dhcp")) {
+foreach ( glob( "{$config['dhcplight']['homefolder']}conf/ext/dhcp/*.php" ) as $file ) {
+$file = str_replace("{$config['dhcplight']['homefolder']}conf/ext/dhcp", "/usr/local/www", $file);
+if ( is_link( $file ) ) {	unlink( $file ); } else {}	}
+mwexec ("rm -rf /usr/local/www/ext/dhcp");
+}
+if ( is_array($config['dhcplight'] ) ) { unset( $config['dhcplight'] ); write_config();}
+?>

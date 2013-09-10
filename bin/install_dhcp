@@ -1,0 +1,37 @@
+#!/usr/local/bin/php-cgi -f
+<?php
+include ("config.inc");
+$cwdir = getcwd();
+if ( !isset($config['dhcplight']) || !is_array($config['dhcplight'])) {	$config['dhcplight'] = array();
+$path1 = pathinfo($cwdir);
+$config['dhcplight']['homefolder'] =  $path1['dirname']."/";
+$cwdir = $config['dhcplight']['homefolder'];
+}
+else { echo "DHCP-light already installed"; exit;}
+chdir ($cwdir);
+mwexec ("mkdir -p /usr/local/www/ext/dhcp");
+mwexec ("cp {$cwdir}conf/ext/dhcp/* /usr/local/www/ext/dhcp/");
+chdir ("/usr/local/www");
+mwexec ("ln -s /usr/local/www/ext/dhcp/*.php .");
+chdir ($cwdir);
+if ( $g['arch'] === "x86" ) { mwexec("mv {$cwdir}bin/dhcpd_x86 bin/dhcpd"); mwexec ("rm {$cwdir}bin/dhcpd_x64");}
+else { mwexec("mv {$cwdir}bin/dhcpd_x64 bin/dhcpd"); mwexec ("rm {$cwdir}bin/dhcpd_x86");}
+mwexec("chmod 755 {$cwdir}bin/dhcp_light");
+$i = 0;
+if ( is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
+	for ($i; $i < count($config['rc']['postinit']['cmd']);) {
+	if (preg_match('/dhcp_light/', $config['rc']['postinit']['cmd'][$i])) 	break;
+	++$i;	} 
+	}
+$config['rc']['postinit']['cmd'][$i] = $cwdir."bin/dhcp_light start";
+write_config();
+$i =0;
+if ( is_array($config['rc']['shutdown'] ) && is_array( $config['rc']['shutdown']['cmd'] ) ) {
+for ($i; $i < count($config['rc']['shutdown']['cmd']); ) {
+	if (preg_match('/dhcp_light/', $config['rc']['shutdown']['cmd'][$i])) 	break;
+	++$i;}
+	}
+$config['rc']['shutdown']['cmd'][$i] = $cwdir."bin/dhcp_light stop";
+write_config();
+echo "DHCP-light installed. Check  webgui extension";
+?>

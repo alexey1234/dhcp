@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+. /etc/rc.subr
+. /etc/configxml.subr
+name="dhcpd"
+PIDFILE=/var/run/${name}.pid
+homefolder=`configxml_get "//dhcplight/homefolder"`
+config=${homefolder}\conf/dhcpd.conf
+enable_c=`configxml_get "//dhcplight/enable"`
+# DHCPD=`${homefolder}\bin/${name} -cf ${config} -pf ${PIDFILE} -lf /var/db/dhcpd/dhcpd.leases` 
+
+echo $DHCPD
+if [ ! -f ${config} ]; then
+  echo "Can not read the server config file (\${homefolder}\conf/dhcpd.conf)."
+  exit 1
+fi
+
+killproc() {
+   pid=`/bin/ps ax | grep -w ${name} | grep -v grep | awk '{print$1}'`
+   echo "Stopping $1 now."
+   [ "$pid" != "" ] && kill -15 $pid
+   rm ${PIDFILE}
+   echo $pid
+}
+
+# Start/stop processes required for the ISC DHCP server
+case "$1" in
+
+  'start')
+	  echo "Starting DHCPD"
+	  if [ "$enable_c" == "yes" ]; then
+	mkdir /var/db/dhcpd
+	chmod 777 /var/db/dhcpd
+	touch /var/db/dhcpd/dhcpd.leases
+	chmod 666 /var/db/dhcpd/dhcpd.leases
+	touch /var/run/dhcpd.pid
+	chmod 666 /var/run/dhcpd.pid
+	 ${homefolder}\bin/${name} -q -4 -cf ${config} -pf ${PIDFILE} -lf /var/db/dhcpd/dhcpd.leases
+	 fi
+	  echo "Done."
+		  ;;
+  'stop')
+	  echo "Stopping DHCPD"
+	  killproc dhcpd
+	  rm -rf /var/db/dhcpd
+	  echo "Done."
+	  ;;
+  'status')
+	pid=`/bin/ps ax | grep -w ${name} | grep -v grep | awk '{print$1}'`
+		echo $pid
+		;;
+   'restart')
+   killproc dhcpd
+	${homefolder}\bin/${name} -q -4 -cf ${config} -pf ${PIDFILE} -lf /var/db/dhcpd/dhcpd.leases
+	echo `/bin/ps ax | grep -w ${name} | grep -v grep | awk '{print$1}'`
+        ;;
+  *)
+	  echo "Usage: $0 [ start | stop | restart | status]"
+	  ;;
+esac
