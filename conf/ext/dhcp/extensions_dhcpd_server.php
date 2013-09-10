@@ -8,13 +8,15 @@ include_once ("ext/dhcp/function.inc");
 $dhcpd_conf = read_dhcpconf($config['dhcplight']['homefolder']."conf/dhcpd.conf");
 $pconfig = $dhcpd_conf['globals']; //  hmmm need conver 
 $pconfig['enable'] = $config['dhcplight']['enable'];
-
+$tempfilecontent = "<?php require(\"auth.inc\"); require(\"guiconfig.inc\"); if (is_file (\"/var/run/dhcpd.pid\")) { \$pid=file_get_contents(\"/var/run/dhcpd.pid\"); print \"DHCP run with pid=\".\$pid; } else print \"DHCP stoped\";?>";
+file_put_contents ("test_dhcp.php", $tempfilecontent );
 if ($_POST) { 
 	if (isset($_POST['Submit']) && ($_POST['Submit'] === "Save")) { 
 		unset($input_errors);
 		$pconfig = $_POST;
 		if (isset($_POST['enable'])) { $config['dhcplight']['enable'] = "yes"; exec ("/bin/sh {$config['dhcplight']['homefolder']}bin/dhcp_light start");} else {unset($config['dhcplight']['enable']); exec ("/bin/sh {$config['dhcplight']['homefolder']}bin/dhcp_light stop");}
 		write_config();
+		
 		if (isset($_POST['authoritative'])) { $dhcpd_conf['globals']['authoritative'] = "yes";} else {unset($dhcpd_conf['globals']['authoritative']);}
 		if (isset($_POST['allow'])){  $dhcpd_conf['globals']['allow'] = "bootp";} else {unset($dhcpd_conf['globals']['allow']);}
 		$dhcpd_conf['globals']['default-lease-time'] = $_POST['default-lease-time'];
@@ -27,13 +29,24 @@ if ($_POST) {
 		$warnmess ="";
 		$pidrestart = exec ("/bin/sh {$config['dhcplight']['homefolder']}bin/dhcp_light restart");
 		exec ("rm -f /var/run/dhcpd.reload");
-		if (is_numeric($pidrestart)) {	$savemsg = gettext("The changes have been applied successfully.");} else {$warnmess = gettext("Something wrong, please check dhcpd.conf"); }
+		if (is_numeric($pidrestart)) {	$savemsg = gettext("The changes have been applied successfully.");} else {$warnmess = gettext("Something wrong, please refer dhcpd.conf or check DHCP server checkbox"); }
 		}
+	if ($config['dhcplight']['enable'] == "yes")  {
+				if (FALSE == is_file ("/var/run/dhcpd.pid")) { exec ("/bin/sh {$config['dhcplight']['homefolder']}bin/dhcp_light start");}
+					else { exec ("/bin/sh {$config['dhcplight']['homefolder']}bin/dhcp_light restart");}
+				}
+			else { exec ("/bin/sh {$config['dhcplight']['homefolder']}bin/dhcp_light stop");}
 	}
 
 $pgtitle = array(gettext("Extensions"),gettext("DHCP_server|light"));
 include("fbegin.inc");?>
-
+<script language="JavaScript">
+var auto_refresh = setInterval(
+		function()
+		{
+		$('#dhcpserv').load('test_dhcp.php');
+		}, 2000);
+</script>
 <table width="100%" border="0" cellpadding="0" cellspacing="0">
 	<tr>
 	<form action="extensions_dhcpd_server.php" method="post" name="iform" id="iform">
@@ -49,10 +62,11 @@ include("fbegin.inc");?>
 				<?php html_separator();?>
 				<tr>
 					<td width="22%" valign="top" class="vncell"><?=gettext("Dhcp-server status");?></td>
-					<td width="78%" class="vtable"><?php 
-					$dhcppid = exec ("echo `/bin/ps ax | grep -w dhcp | grep -v grep | awk '{print$1}'`");
-					if ($dhcppid) { echo "DHCP-server running with pid = ".$dhcppid; } else {echo "DHCP server stopped"; }
-					 ?></td>
+					
+					
+					<td width="78%" class="vtable"><div id="dhcpserv" style="display: block;"></td>
+					
+					
 				</tr>
 				<?php html_separator();?>
 				<tr>
