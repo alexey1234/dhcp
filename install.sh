@@ -1,4 +1,5 @@
 #!/bin/sh
+# I test server.  Second stage
 workdir=`pwd`
 # Make sure the user can't kill us by pressing Ctrl-C
 trap : 2
