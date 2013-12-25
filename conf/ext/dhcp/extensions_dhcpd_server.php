@@ -1,6 +1,7 @@
 <?php
 /* 
 extensions_dhcpd_server.php
+Version=0.05
 */
 require("auth.inc");
 require("guiconfig.inc");
